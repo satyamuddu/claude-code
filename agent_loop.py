@@ -1,5 +1,3 @@
-from urllib import response
-
 import anthropic
 import json
 client = anthropic.Anthropic()
@@ -107,8 +105,13 @@ def run_agent_loop(user_prompt):
     while True:
         if iteration_count >= MAX_ITERATIONS:
             print("Maximum iterations reached.")
+            return "Agent terminated by saftey cap."
             break
+        
+        iteration_count += 1
+                 
         # Here you would add the logic to select and run the appropriate tool based on the user prompt.
+        
         response = client.messages.create(
             model="claude-sonnet-5-5",
             max_tokens=1024,
@@ -142,9 +145,7 @@ def run_agent_loop(user_prompt):
                         "content": tool_result
                     })
             messages.append({"role": "user", "content": tool_results})
-        iteration_count += 1
 
-    print("Agent terminated by saftey cap.") 
 
 if __name__ == "__main__":
     initial_prompt = "Search for the current price of Bitcoin and calculate what 3.5 coins would cost "
