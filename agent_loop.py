@@ -1,6 +1,9 @@
+from urllib import response
+
 import anthropic
 import json
 client = anthropic.Anthropic()
+MAX_ITERATIONS = 10
 tools = [
    {
   "name": "calculator",
@@ -79,12 +82,12 @@ def run_web_search(query: str, num_results: int = 5) -> str:
             "query": query,
             "num_results": num_results,
             "results": [
-                {
-                    "title": "Example Title",
-                    "url": "https://example.com",
-                    "snippet": "Snippet of real-time info..."
-                }
-            ]
+            {
+                "title": "Bitcoin price today",
+                "url": "https://example.com/btc",
+                "snippet": "Bitcoin (BTC) is trading at $65,000 USD."
+            }
+        ]
         })
     
     except Exception as e:
@@ -100,8 +103,11 @@ def execute_tool(name, tool_input):
 def run_agent_loop(user_prompt):
     messages = [{"role": "user", "content": user_prompt}]
     print("User prompt:", user_prompt)
-      
+    iteration_count = 0
     while True:
+        if iteration_count >= MAX_ITERATIONS:
+            print("Maximum iterations reached.")
+            break
         # Here you would add the logic to select and run the appropriate tool based on the user prompt.
         response = client.messages.create(
             model="claude-sonnet-5-5",
@@ -109,22 +115,40 @@ def run_agent_loop(user_prompt):
             messages=messages,
             tools=tools
         )
+        print("stop_reason:", response.stop_reason)
 
         if response.stop_reason == "end_turn":
+            for block in response.content:
+                if block.type == "text":
+                    return block.text
             print("End turn reached.")
-            break
+            return ""
 
         if response.stop_reason == "tool_use":
             print ("Tool use requested.", response.content)
-            break
+            # 1. append Claude's reply to messages (role: assistant)
+            messages.append({"role": "assistant", "content": response.content})
+            
+            tool_results =[]
+            for block in response.content:
+                if block.type == "tool_use":
+                    print(f"Running tool: {block.name} with {block.input}")
+                    tool_name = block.name
+                    tool_input = block.input
+                    tool_result = execute_tool(tool_name, tool_input)
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result
+                    })
+            messages.append({"role": "user", "content": tool_results})
+        iteration_count += 1
 
-    print("Agent loop exited.") 
+    print("Agent terminated by saftey cap.") 
 
 if __name__ == "__main__":
-    initial_prompt = "What is 5 multiplied by 10 "
+    initial_prompt = "Search for the current price of Bitcoin and calculate what 3.5 coins would cost "
     print("Initial prompt was:", initial_prompt)
-    run_agent_loop(initial_prompt)
-    
-    print("Tools available:", [t["name"] for t in tools])
-    print("Agent loop has finished execution.")
+    answer = run_agent_loop(initial_prompt)
+    print("Answer:", answer)
 
