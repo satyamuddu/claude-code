@@ -1,0 +1,3 @@
+Internal note, March 2024: Our pilot array used TOPCon modules rated at 22.8% efficiency.
+Internal note, June 2024: Supplier quoted back-contact modules at 24.0% efficiency, priced 12% higher.
+Internal note, Sept 2024: Field tests showed bifacial gain of roughly 8% on light-coloured gravel.
